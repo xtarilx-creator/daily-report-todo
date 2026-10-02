@@ -1,0 +1,17 @@
+{
+  "name": "daily-report-todo",
+  "version": "1.0.0",
+  "description": "Daily Report Todo Dashboard powered by Cloudflare Pages and D1",
+  "scripts": {
+    "dev": "wrangler pages dev . --d1 DB=daily-report-db",
+    "d1:init": "wrangler d1 execute daily-report-db --local --file=./schema.sql"
+  },
+  "keywords": [
+    "cloudflare-pages",
+    "cloudflare-d1",
+    "todo",
+    "daily-report"
+  ],
+  "author": "",
+  "license": "MIT"
+}

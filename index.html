@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日報作成 Todo ダッシュボード | Daily Report Todo</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Material Symbols Outlined -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            surface: {
+              DEFAULT: '#0b1326',
+              lowest: '#060e20',
+              low: '#131b2e',
+              container: '#171f33',
+              high: '#222a3d',
+              highest: '#2d3449'
+            },
+            primary: {
+              DEFAULT: '#4d8eff',
+              container: '#1e3a8a',
+              light: '#adc6ff'
+            },
+            secondary: {
+              DEFAULT: '#7bd0ff',
+              container: '#00354a'
+            },
+            tertiary: {
+              DEFAULT: '#4edea3',
+              container: '#003824',
+              dark: '#059669'
+            },
+            'on-surface': '#dae2fd',
+            'on-surface-variant': '#94a3b8',
+            outline: '#334155'
+          },
+          fontFamily: {
+            sans: ['Inter', 'Hiragino Sans', 'Meiryo', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Consolas', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #0b1326;
+      color: #dae2fd;
+      font-family: 'Inter', sans-serif;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+    }
+    .fill-icon {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+    /* カスタムスクロールバー */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(11, 19, 38, 0.5);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2d3449;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4d8eff;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-primary selection:text-white">
+
+  <!-- ヘッダーナビゲーション -->
+  <header class="border-b border-surface-highest/60 bg-surface/80 backdrop-blur-xl sticky top-0 z-40">
+    <div class="max-w-[1520px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="icon.svg" alt="App Icon" class="w-10 h-10 rounded-xl shadow-lg shadow-blue-500/10 border border-blue-400/20" />
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-lg text-on-surface tracking-tight">日報作成 Todo</h1>
+            <span class="text-[11px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-primary/20 text-primary-light border border-primary/30">D1 Ready</span>
+          </div>
+          <p class="text-xs text-on-surface-variant hidden sm:block">タスクを「完了」にすると、本日分の日報テンプレートが自動生成されます</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-surface-highest text-xs text-on-surface-variant">
+          <span class="material-symbols-outlined text-sm text-secondary">calendar_today</span>
+          <span id="currentDateBadge">2026年10月2日 (金)</span>
+        </div>
+        <div id="dbStatusBadge" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container border border-surface-highest text-xs text-on-surface-variant">
+          <span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+          <span id="dbStatusText">接続確認中</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="flex-1 max-w-[1520px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- KPIステータスリボン (4 Cards) -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- 未完了タスク -->
+      <div class="p-4 rounded-xl bg-surface-container/70 border border-surface-highest/80 backdrop-blur-md shadow-lg flex items-center justify-between transition-all hover:border-secondary/40">
+        <div>
+          <div class="text-xs text-on-surface-variant flex items-center gap-1.5 font-medium">
+            <span class="w-2 h-2 rounded-full bg-secondary"></span>
+            未完了タスク
+          </div>
+          <div class="text-2xl font-bold text-on-surface mt-1">
+            <span id="statIncomplete">0</span> <span class="text-sm font-normal text-on-surface-variant">件</span>
+          </div>
+        </div>
+        <div class="w-11 h-11 rounded-lg bg-surface-high flex items-center justify-center text-secondary border border-surface-highest">
+          <span class="material-symbols-outlined text-2xl">pending_actions</span>
+        </div>
+      </div>
+
+      <!-- 本日完了 -->
+      <div class="p-4 rounded-xl bg-surface-container/70 border border-surface-highest/80 backdrop-blur-md shadow-lg flex items-center justify-between transition-all hover:border-tertiary/40">
+        <div>
+          <div class="text-xs text-on-surface-variant flex items-center gap-1.5 font-medium">
+            <span class="w-2 h-2 rounded-full bg-tertiary"></span>
+            本日完了
+          </div>
+          <div class="text-2xl font-bold text-tertiary mt-1">
+            <span id="statCompleted">0</span> <span class="text-sm font-normal text-on-surface-variant">件</span>
+          </div>
+        </div>
+        <div class="w-11 h-11 rounded-lg bg-tertiary-container/30 flex items-center justify-center text-tertiary border border-tertiary/20">
+          <span class="material-symbols-outlined text-2xl fill-icon">task_alt</span>
+        </div>
+      </div>
+
+      <!-- 進捗達成率 -->
+      <div class="p-4 rounded-xl bg-surface-container/70 border border-surface-highest/80 backdrop-blur-md shadow-lg flex items-center justify-between transition-all hover:border-primary/40">
+        <div>
+          <div class="text-xs text-on-surface-variant flex items-center gap-1.5 font-medium">
+            <span class="w-2 h-2 rounded-full bg-primary"></span>
+            本日の達成率
+          </div>
+          <div class="flex items-baseline gap-2 mt-1">
+            <span class="text-2xl font-bold text-primary" id="statRate">0%</span>
+            <span class="text-xs text-on-surface-variant" id="statTotalCount">0 Tasks</span>
+          </div>
+        </div>
+        <div class="relative w-11 h-11 flex items-center justify-center">
+          <svg class="w-11 h-11 -rotate-90" viewBox="0 0 36 36">
+            <circle class="stroke-surface-highest" cx="18" cy="18" fill="none" r="15" stroke-width="3"></circle>
+            <circle id="progressCircle" class="stroke-primary transition-all duration-500 ease-out" cx="18" cy="18" fill="none" r="15" stroke-width="3" stroke-dasharray="100" stroke-dashoffset="100" stroke-linecap="round"></circle>
+          </svg>
+          <span class="material-symbols-outlined absolute text-xs text-primary">bolt</span>
+        </div>
+      </div>
+
+      <!-- 送信先ステータス -->
+      <div class="p-4 rounded-xl bg-surface-container/70 border border-surface-highest/80 backdrop-blur-md shadow-lg flex items-center justify-between transition-all hover:border-primary-light/40">
+        <div class="truncate">
+          <div class="text-xs text-on-surface-variant flex items-center gap-1.5 font-medium">
+            <span class="w-2 h-2 rounded-full bg-primary-light"></span>
+            送信先情報
+          </div>
+          <div class="text-sm font-semibold text-on-surface mt-1 truncate max-w-[180px]">
+            h.osawa@tcdigital.jp
+          </div>
+          <div class="text-[11px] text-secondary truncate">
+            件名: Antigravityテスト
+          </div>
+        </div>
+        <div class="w-11 h-11 rounded-lg bg-primary-container/20 flex items-center justify-center text-primary-light border border-primary/20 shrink-0">
+          <span class="material-symbols-outlined text-2xl">mark_email_read</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2カラムワークスペース (左: タスク管理 5cols / 右: 日報プレビュー 7cols) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- 左カラム: タスク管理パネル -->
+      <section class="lg:col-span-5 flex flex-col gap-4">
+        <div class="rounded-xl bg-surface-container/80 border border-surface-highest/90 backdrop-blur-xl p-5 shadow-xl flex flex-col">
+          
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-xl">checklist</span>
+              タスク管理
+            </h2>
+            <span class="text-xs text-on-surface-variant bg-surface-high px-2 py-0.5 rounded-md border border-surface-highest" id="taskTotalBadge">0 件</span>
+          </div>
+
+          <!-- 新規タスク追加フォーム -->
+          <form id="todoForm" class="flex gap-2 mb-5">
+            <div class="relative flex-1">
+              <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-lg">add_task</span>
+              <input 
+                type="text" 
+                id="taskInput" 
+                placeholder="新しいタスクを入力... (Enterで追加)" 
+                class="w-full pl-9 pr-4 py-2.5 bg-surface-lowest/90 border border-surface-highest rounded-lg text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                required 
+                autocomplete="off"
+              />
+            </div>
+            <button 
+              type="submit" 
+              class="px-4 py-2.5 bg-primary hover:bg-blue-600 text-white font-medium text-sm rounded-lg transition-all flex items-center gap-1 shadow-md shadow-primary/20 shrink-0 active:scale-95"
+            >
+              <span class="material-symbols-outlined text-lg">add</span>
+              追加
+            </button>
+          </form>
+
+          <!-- 未完了タスク一覧 -->
+          <div class="space-y-2 mb-5">
+            <div class="flex items-center justify-between text-xs font-semibold text-on-surface-variant uppercase tracking-wider pb-1 border-b border-surface-highest/60">
+              <span class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                未完了のタスク
+              </span>
+              <span id="pendingBadge">0</span>
+            </div>
+            <ul id="pendingList" class="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+              <!-- JSで動的レンダリング -->
+            </ul>
+          </div>
+
+          <!-- 本日完了したタスク一覧 -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs font-semibold text-on-surface-variant uppercase tracking-wider pb-1 border-b border-surface-highest/60">
+              <span class="flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                本日完了したタスク
+              </span>
+              <span id="completedBadge">0</span>
+            </div>
+            <ul id="completedList" class="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+              <!-- JSで動的レンダリング -->
+            </ul>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 右カラム: 日報プレビュー＆出力パネル -->
+      <section class="lg:col-span-7 flex flex-col gap-4">
+        <div class="rounded-xl bg-surface-container/80 border border-surface-highest/90 backdrop-blur-xl p-5 shadow-xl flex flex-col min-h-[560px]">
+          
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary text-xl">drafts</span>
+              日報メールプレビュー
+            </h2>
+            <span class="text-xs text-secondary bg-secondary-container/40 border border-secondary/30 px-2.5 py-0.5 rounded-full font-medium">自動連動</span>
+          </div>
+
+          <!-- 宛先・件名情報カード -->
+          <div class="bg-surface-lowest/70 border border-surface-highest rounded-lg p-3.5 space-y-2 mb-4 text-xs font-mono">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 truncate">
+                <span class="text-on-surface-variant font-sans font-medium w-10">宛先:</span>
+                <span id="recipientValue" class="text-secondary font-semibold">h.osawa@tcdigital.jp</span>
+              </div>
+              <button 
+                type="button" 
+                onclick="copySingleField('recipientValue', '宛先アドレスをコピーしました')"
+                class="px-2 py-0.5 rounded bg-surface-high hover:bg-surface-highest text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-1 shrink-0 font-sans"
+              >
+                <span class="material-symbols-outlined text-xs">content_copy</span>
+                コピー
+              </button>
+            </div>
+            <div class="flex items-center justify-between pt-1 border-t border-surface-highest/40">
+              <div class="flex items-center gap-2 truncate">
+                <span class="text-on-surface-variant font-sans font-medium w-10">件名:</span>
+                <span id="subjectValue" class="text-primary-light font-semibold">Antigravityテスト</span>
+              </div>
+              <button 
+                type="button" 
+                onclick="copySingleField('subjectValue', '件名をコピーしました')"
+                class="px-2 py-0.5 rounded bg-surface-high hover:bg-surface-highest text-on-surface-variant hover:text-on-surface transition-all flex items-center gap-1 shrink-0 font-sans"
+              >
+                <span class="material-symbols-outlined text-xs">content_copy</span>
+                コピー
+              </button>
+            </div>
+          </div>
+
+          <!-- 本文テキストエリア -->
+          <div class="flex-1 flex flex-col mb-4">
+            <label for="reportBodyTextarea" class="text-xs text-on-surface-variant font-medium mb-1.5 flex items-center justify-between">
+              <span>本文プレビュー (直接編集も可能)</span>
+              <span class="text-[11px] text-tertiary">タスク完了とリアルタイム同期中</span>
+            </label>
+            <textarea 
+              id="reportBodyTextarea" 
+              class="flex-1 w-full min-h-[280px] p-4 rounded-lg bg-surface-lowest/90 border border-surface-highest text-on-surface text-sm font-mono leading-relaxed focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all resize-y"
+              spellcheck="false"
+            ></textarea>
+          </div>
+
+          <!-- アクションボタンエリア -->
+          <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-surface-highest/60">
+            <button 
+              id="copyFullReportBtn" 
+              type="button" 
+              class="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-tertiary-dark to-tertiary hover:from-emerald-600 hover:to-emerald-400 text-surface-lowest font-bold text-sm rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-tertiary/20 active:scale-95"
+            >
+              <span class="material-symbols-outlined text-xl">content_copy</span>
+              <span>📋 日報全文をコピー</span>
+            </button>
+
+            <button 
+              id="launchMailerBtn" 
+              type="button" 
+              class="flex-1 sm:flex-none px-5 py-3 bg-surface-high hover:bg-surface-highest text-on-surface border border-surface-highest hover:border-secondary/40 font-medium text-sm rounded-lg transition-all flex items-center justify-center gap-2 active:scale-95"
+            >
+              <span class="material-symbols-outlined text-lg text-secondary">open_in_new</span>
+              <span>メーラーを起動</span>
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- コピー通知トースト -->
+  <div id="toast" class="fixed bottom-6 right-6 px-4 py-3 rounded-xl bg-tertiary text-surface-lowest font-bold text-sm shadow-2xl shadow-tertiary/30 flex items-center gap-2 transform translate-y-12 opacity-0 pointer-events-none transition-all duration-300 z-50">
+    <span class="material-symbols-outlined fill-icon text-lg">check_circle</span>
+    <span id="toastMessage">日報全文をクリップボードにコピーしました！</span>
+  </div>
+
+  <!-- クライアントロジック読み込み -->
+  <script src="app.js"></script>
+</body>
+</html>
